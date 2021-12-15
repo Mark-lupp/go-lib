@@ -9,7 +9,7 @@ import (
 )
 
 func TestInitZapV2Logger(t *testing.T) {
-	lg := NewLogger(SetAppName("test_app"), SetDevelopment(true), SetLevel(zap.DebugLevel), SetErrorFileName("error_e_e_e_e.log"), SetConsolePrint(true), SetLogFileDir("./log"))
+	lg := NewLogger(SetAppName("test_app"), SetLevel(zap.DebugLevel), SetErrorFileName("error_e_e_e_e.log"), SetConsolePrint(true), SetLogFileDir("./logs"))
 	for i := 0; i < 10; i++ {
 		time.Sleep(time.Second)
 		lg.Debug(fmt.Sprint("debug log ", 1), zap.Int("line", 47))

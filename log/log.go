@@ -23,8 +23,8 @@ type Options struct {
 	MaxSize       int           //日志文件小大（M）
 	MaxBackups    int           // 最多存在多少个切片文件
 	MaxAge        int           //保存的最大天数
-	Development   bool          //是否是开发模式
 	Console       bool          // 是否控制台打印
+	Development   bool          // 是否调试模式
 	zap.Config
 }
 
@@ -65,8 +65,8 @@ func NewLogger(mod ...ModOptions) *zap.Logger {
 		MaxSize:       100,
 		MaxBackups:    60,
 		MaxAge:        30,
-		Development:   false,
 		Console:       false,
+		Development:   false,
 	}
 	if l.Opts.LogFileDir == "" {
 		l.Opts.LogFileDir, _ = filepath.Abs(filepath.Dir(filepath.Join(".")))
@@ -84,6 +84,9 @@ func NewLogger(mod ...ModOptions) *zap.Logger {
 	} else {
 		l.zapConfig = zap.NewProductionConfig()
 		l.zapConfig.EncoderConfig.EncodeTime = timeUnixNano
+	}
+	if l.Opts.Console {
+		l.zapConfig.Encoding = "console"
 	}
 	if l.Opts.OutputPaths == nil || len(l.Opts.OutputPaths) == 0 {
 		l.zapConfig.OutputPaths = []string{"stdout"}
@@ -237,7 +240,7 @@ func SetConsolePrint(isConsole bool) ModOptions {
 	}
 }
 func (l *Logger) cores() zap.Option {
-	fileEncoder := l.getEncoder()
+	fileEncoder := zapcore.NewJSONEncoder(l.zapConfig.EncoderConfig)
 	//consoleEncoder := zapcore.NewConsoleEncoder(l.zapConfig.EncoderConfig)
 	encoderConfig := zap.NewDevelopmentEncoderConfig()
 	encoderConfig.EncodeTime = timeEncoder
@@ -274,12 +277,7 @@ func (l *Logger) cores() zap.Option {
 		return zapcore.NewTee(cores...)
 	})
 }
-func (l *Logger) getEncoder() zapcore.Encoder {
-	if !l.Opts.Console {
-		return zapcore.NewJSONEncoder(l.zapConfig.EncoderConfig)
-	}
-	return zapcore.NewConsoleEncoder(l.zapConfig.EncoderConfig)
-}
+
 func timeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 	enc.AppendString(t.Format("2006-01-02 15:04:05"))
 }
