@@ -1,7 +1,6 @@
 package log
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
@@ -72,12 +71,13 @@ func NewLogger(mod ...ModOptions) *zap.Logger {
 	if l.Opts.LogFileDir == "" {
 		l.Opts.LogFileDir, _ = filepath.Abs(filepath.Dir(filepath.Join(".")))
 		l.Opts.LogFileDir += sp + "logs" + sp
+	} else {
+		// 判断是否有LogFileDir文件夹
+		if ok, _ := file.PathExists(l.Opts.LogFileDir); !ok {
+			_ = os.Mkdir(l.Opts.LogFileDir, os.ModePerm)
+		}
 	}
-	// 判断是否有LogFileDir文件夹
-	if ok, _ := file.PathExists(l.Opts.LogFileDir); !ok {
-		l.Error(fmt.Sprintf("create %v directory\n", l.Opts.LogFileDir))
-		_ = os.Mkdir(l.Opts.LogFileDir, os.ModePerm)
-	}
+
 	if l.Opts.Development {
 		l.zapConfig = zap.NewDevelopmentConfig()
 		l.zapConfig.EncoderConfig.EncodeTime = timeEncoder
