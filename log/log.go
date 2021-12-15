@@ -1,11 +1,13 @@
 package log
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"sync"
 	"time"
 
+	"github.com/Mark-lupp/go-lib/file"
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -23,6 +25,7 @@ type Options struct {
 	MaxBackups    int           // 最多存在多少个切片文件
 	MaxAge        int           //保存的最大天数
 	Development   bool          //是否是开发模式
+	Console       bool          // 是否控制台打印
 	zap.Config
 }
 
@@ -53,7 +56,7 @@ func NewLogger(mod ...ModOptions) *zap.Logger {
 		return nil
 	}
 	l.Opts = &Options{
-		LogFileDir:    "./",
+		LogFileDir:    "",
 		AppName:       "app_log",
 		ErrorFileName: "error.log",
 		WarnFileName:  "warn.log",
@@ -63,10 +66,17 @@ func NewLogger(mod ...ModOptions) *zap.Logger {
 		MaxSize:       100,
 		MaxBackups:    60,
 		MaxAge:        30,
+		Development:   false,
+		Console:       false,
 	}
 	if l.Opts.LogFileDir == "" {
 		l.Opts.LogFileDir, _ = filepath.Abs(filepath.Dir(filepath.Join(".")))
 		l.Opts.LogFileDir += sp + "logs" + sp
+	}
+	// 判断是否有LogFileDir文件夹
+	if ok, _ := file.PathExists(l.Opts.LogFileDir); !ok {
+		l.Error(fmt.Sprintf("create %v directory\n", l.Opts.LogFileDir))
+		_ = os.Mkdir(l.Opts.LogFileDir, os.ModePerm)
 	}
 	if l.Opts.Development {
 		l.zapConfig = zap.NewDevelopmentConfig()
@@ -118,67 +128,116 @@ func (l *Logger) setSyncers() {
 	debugWS = f(l.Opts.DebugFileName)
 	return
 }
+
+/*
+	设置日志文件的最大大小（M），默认100M
+*/
 func SetMaxSize(MaxSize int) ModOptions {
 	return func(option *Options) {
 		option.MaxSize = MaxSize
 	}
 }
+
+/*
+	设置最大切片文件数量，默认60份
+*/
 func SetMaxBackups(MaxBackups int) ModOptions {
 	return func(option *Options) {
 		option.MaxBackups = MaxBackups
 	}
 }
+
+/*
+	设置日志保留的天数，默认30天
+*/
 func SetMaxAge(MaxAge int) ModOptions {
 	return func(option *Options) {
 		option.MaxAge = MaxAge
 	}
 }
 
+/*
+	设置日志存放路径，默认当前当前路径
+*/
 func SetLogFileDir(LogFileDir string) ModOptions {
 	return func(option *Options) {
 		option.LogFileDir = LogFileDir
 	}
 }
 
+/*
+	设置日志文件的前缀名
+*/
 func SetAppName(AppName string) ModOptions {
 	return func(option *Options) {
 		option.AppName = AppName
 	}
 }
 
+/*
+	设置日志级别
+*/
 func SetLevel(Level zapcore.Level) ModOptions {
 	return func(option *Options) {
 		option.Level = Level
 	}
 }
+
+/*
+	设置error日志文件名
+*/
 func SetErrorFileName(ErrorFileName string) ModOptions {
 	return func(option *Options) {
 		option.ErrorFileName = ErrorFileName
 	}
 }
+
+/*
+	设置warning日志文件名
+*/
 func SetWarnFileName(WarnFileName string) ModOptions {
 	return func(option *Options) {
 		option.WarnFileName = WarnFileName
 	}
 }
 
+/*
+	设置info日志文件名
+*/
 func SetInfoFileName(InfoFileName string) ModOptions {
 	return func(option *Options) {
 		option.InfoFileName = InfoFileName
 	}
 }
+
+/*
+	设置debug日志文件名
+*/
 func SetDebugFileName(DebugFileName string) ModOptions {
 	return func(option *Options) {
 		option.DebugFileName = DebugFileName
 	}
 }
+
+/*
+	设置是否调试模式
+*/
 func SetDevelopment(Development bool) ModOptions {
 	return func(option *Options) {
 		option.Development = Development
 	}
 }
+
+/*
+	设置是否控制打印日志
+*/
+func SetConsolePrint(isConsole bool) ModOptions {
+	return func(option *Options) {
+		option.Console = isConsole
+	}
+}
 func (l *Logger) cores() zap.Option {
-	fileEncoder := zapcore.NewJSONEncoder(l.zapConfig.EncoderConfig)
+	fileEncoder := l.getEncoder()
 	//consoleEncoder := zapcore.NewConsoleEncoder(l.zapConfig.EncoderConfig)
 	encoderConfig := zap.NewDevelopmentEncoderConfig()
 	encoderConfig.EncodeTime = timeEncoder
@@ -214,6 +273,12 @@ func (l *Logger) cores() zap.Option {
 	return zap.WrapCore(func(c zapcore.Core) zapcore.Core {
 		return zapcore.NewTee(cores...)
 	})
+}
+func (l *Logger) getEncoder() zapcore.Encoder {
+	if !l.Opts.Console {
+		return zapcore.NewJSONEncoder(l.zapConfig.EncoderConfig)
+	}
+	return zapcore.NewConsoleEncoder(l.zapConfig.EncoderConfig)
 }
 func timeEncoder(t time.Time, enc zapcore.PrimitiveArrayEncoder) {
 	enc.AppendString(t.Format("2006-01-02 15:04:05"))
