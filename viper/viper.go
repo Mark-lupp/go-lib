@@ -2,95 +2,108 @@ package viper
 
 import (
 	"bytes"
+	"errors"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"strings"
 	"time"
 
+	"github.com/Mark-lupp/go-lib/dir"
+
 	"github.com/spf13/viper"
 )
 
 var (
-	FILE_TYPE = map[int]string{
-		0: "yaml",
-		1: "yml",
-		2: "json",
-		3: "toml",
-	} // 配置文件后缀名格式
+	ErrEmptyName = errors.New("文件名称不能为空！")
+	ErrEmpty     = errors.New("文件不可为空！")
+	ErrExistFile = errors.New("文件不存在！")
+	ErrEmptyFile = errors.New("文件不可为空,请指定需读取的文件信息！")
+)
+var (
 	ViperConfMap map[string]*viper.Viper // 用来存放配置文件缓存
 )
 
-const (
-	YAML = iota
-	YML
-	JSON
-	TOML
-)
-
-type Conf struct {
-	Path     string
-	fileType string
+// 读取配置
+type ViperConfig struct {
+	Debug     bool                     // 是否开发调试模式（控制台输出日志）
+	FilePaths []string                 // 文件列表
+	Watch     func(*viper.Viper) error // 监听配置文件变化
 }
 
-/*
-path 配置文件路径
-file_type 文件的后缀名支持yaml，yml，json，toml，默认yaml
-*/
-func New(path string, file_type ...int) (*Conf, error) {
-	ft := ""
-	switch file_type[0] {
-	case YAML:
-		ft = FILE_TYPE[YAML]
-	case YML:
-		ft = FILE_TYPE[YML]
-	case JSON:
-		ft = FILE_TYPE[JSON]
-	case TOML:
-		ft = FILE_TYPE[TOML]
-	default:
-		ft = FILE_TYPE[YAML]
+func New(vc ViperConfig) (config *ViperConfig, err error) {
+	if len(vc.FilePaths) == 0 {
+		return nil, ErrEmpty
 	}
-	conf := &Conf{
-		Path:     path,
-		fileType: ft,
-	}
-	if err := initViperConf(conf); err != nil {
-		return nil, err
-	}
-	return conf, nil
-}
-
-// Viper初始化配置文件
-func initViperConf(c *Conf) error {
-	f, err := os.Open(c.Path)
-	if err != nil {
-		return err
-	}
-	fileList, err := f.Readdir(1024)
-	if err != nil {
-		return err
-	}
-	for _, f0 := range fileList {
-		if !f0.IsDir() {
-			bts, err := ioutil.ReadFile(c.Path + "/" + f0.Name())
-			if err != nil {
-				return err
+	for _, filepath := range vc.FilePaths {
+		// 文件存在读取
+		if dir.IsExist(filepath) {
+			if err = readConfig(filepath, vc.Debug); err != nil {
+				return
 			}
-			v := viper.New()
-			v.SetConfigType(c.fileType)
-			v.ReadConfig(bytes.NewBuffer(bts))
-			pathArr := strings.Split(f0.Name(), ".")
-			if ViperConfMap == nil {
-				ViperConfMap = make(map[string]*viper.Viper)
-			}
-			ViperConfMap[pathArr[0]] = v
 		}
+	}
+
+	return nil, nil
+}
+func readConfig(path string, debug bool) error {
+	_, err := os.Open(path)
+	if err != nil {
+		return err
+	}
+	v := viper.New()
+	// 判断是否是文件
+	if dir.IsFile(path) {
+		bts, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		if debug {
+			fmt.Printf("配置文件类型：【%s】", dir.ExtType(path))
+		}
+		v.SetConfigType(dir.ExtType(path))
+		if err = v.ReadConfig(bytes.NewBuffer(bts)); err != nil {
+			return err
+		}
+		if ViperConfMap == nil {
+			ViperConfMap = make(map[string]*viper.Viper)
+		}
+		ViperConfMap[dir.Basename(path)] = v
 	}
 	return nil
 }
 
+// // Viper初始化配置文件
+// func initViperConf(c *ViperConfig) error {
+// 	f, err := os.Open(c.Path)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	fileList, err := f.Readdir(1024)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	for _, f0 := range fileList {
+// 		if !f0.IsDir() {
+// 			bts, err := ioutil.ReadFile(c.Path + "/" + f0.Name())
+// 			if err != nil {
+// 				return err
+// 			}
+// 			v := viper.New()
+// 			v.SetConfigType(c.fileType)
+// 			v.ReadConfig(bytes.NewBuffer(bts))
+// 			pathArr := strings.Split(f0.Name(), ".")
+// 			if ViperConfMap == nil {
+// 				ViperConfMap = make(map[string]*viper.Viper)
+// 			}
+// 			ViperConfMap[pathArr[0]] = v
+// 		}
+// 	}
+// 	return nil
+// }
+
 //获取get配置信息
-func (c *Conf) GetStringConf(key string) string {
+func (c *ViperConfig) GetStringConf(key string) string {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return ""
@@ -104,7 +117,7 @@ func (c *Conf) GetStringConf(key string) string {
 }
 
 //获取get配置信息
-func (c *Conf) GetStringMapConf(key string) map[string]interface{} {
+func (c *ViperConfig) GetStringMapConf(key string) map[string]interface{} {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return nil
@@ -115,7 +128,7 @@ func (c *Conf) GetStringMapConf(key string) map[string]interface{} {
 }
 
 //获取get配置信息
-func (c *Conf) GetConf(key string) interface{} {
+func (c *ViperConfig) GetConf(key string) interface{} {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return nil
@@ -126,7 +139,7 @@ func (c *Conf) GetConf(key string) interface{} {
 }
 
 //获取get配置信息
-func (c *Conf) GetBoolConf(key string) bool {
+func (c *ViperConfig) GetBoolConf(key string) bool {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return false
@@ -137,7 +150,7 @@ func (c *Conf) GetBoolConf(key string) bool {
 }
 
 //获取get配置信息
-func (c *Conf) GetFloat64Conf(key string) float64 {
+func (c *ViperConfig) GetFloat64Conf(key string) float64 {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return 0
@@ -148,7 +161,7 @@ func (c *Conf) GetFloat64Conf(key string) float64 {
 }
 
 //获取get配置信息
-func (c *Conf) GetIntConf(key string) int {
+func (c *ViperConfig) GetIntConf(key string) int {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return 0
@@ -159,7 +172,7 @@ func (c *Conf) GetIntConf(key string) int {
 }
 
 //获取get配置信息
-func (c *Conf) GetStringMapStringConf(key string) map[string]string {
+func (c *ViperConfig) GetStringMapStringConf(key string) map[string]string {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return nil
@@ -170,7 +183,7 @@ func (c *Conf) GetStringMapStringConf(key string) map[string]string {
 }
 
 //获取get配置信息
-func (c *Conf) GetStringSliceConf(key string) []string {
+func (c *ViperConfig) GetStringSliceConf(key string) []string {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return nil
@@ -181,7 +194,7 @@ func (c *Conf) GetStringSliceConf(key string) []string {
 }
 
 //获取get配置信息
-func (c *Conf) GetTimeConf(key string) time.Time {
+func (c *ViperConfig) GetTimeConf(key string) time.Time {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return time.Now()
@@ -192,7 +205,7 @@ func (c *Conf) GetTimeConf(key string) time.Time {
 }
 
 //获取时间阶段长度
-func (c *Conf) GetDurationConf(key string) time.Duration {
+func (c *ViperConfig) GetDurationConf(key string) time.Duration {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return 0
@@ -203,7 +216,7 @@ func (c *Conf) GetDurationConf(key string) time.Duration {
 }
 
 //是否设置了key
-func (c *Conf) IsSetConf(key string) bool {
+func (c *ViperConfig) IsSetConf(key string) bool {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return false
