@@ -103,7 +103,7 @@ func readConfig(path string, debug bool) error {
 // }
 
 //获取get配置信息
-func (c *ViperConfig) GetStringConf(key string) string {
+func (c *ViperConfig) GetString(key string) string {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return ""
@@ -117,7 +117,7 @@ func (c *ViperConfig) GetStringConf(key string) string {
 }
 
 //获取get配置信息
-func (c *ViperConfig) GetStringMapConf(key string) map[string]interface{} {
+func (c *ViperConfig) GetStringMap(key string) map[string]interface{} {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return nil
@@ -139,7 +139,7 @@ func (c *ViperConfig) GetConf(key string) interface{} {
 }
 
 //获取get配置信息
-func (c *ViperConfig) GetBoolConf(key string) bool {
+func (c *ViperConfig) GetBool(key string) bool {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return false
@@ -150,7 +150,7 @@ func (c *ViperConfig) GetBoolConf(key string) bool {
 }
 
 //获取get配置信息
-func (c *ViperConfig) GetFloat64Conf(key string) float64 {
+func (c *ViperConfig) GetFloat64(key string) float64 {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return 0
@@ -161,7 +161,7 @@ func (c *ViperConfig) GetFloat64Conf(key string) float64 {
 }
 
 //获取get配置信息
-func (c *ViperConfig) GetIntConf(key string) int {
+func (c *ViperConfig) GetInt(key string) int {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return 0
@@ -172,7 +172,7 @@ func (c *ViperConfig) GetIntConf(key string) int {
 }
 
 //获取get配置信息
-func (c *ViperConfig) GetStringMapStringConf(key string) map[string]string {
+func (c *ViperConfig) GetStringMapString(key string) map[string]string {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return nil
@@ -183,7 +183,7 @@ func (c *ViperConfig) GetStringMapStringConf(key string) map[string]string {
 }
 
 //获取get配置信息
-func (c *ViperConfig) GetStringSliceConf(key string) []string {
+func (c *ViperConfig) GetStringSlice(key string) []string {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return nil
@@ -194,7 +194,7 @@ func (c *ViperConfig) GetStringSliceConf(key string) []string {
 }
 
 //获取get配置信息
-func (c *ViperConfig) GetTimeConf(key string) time.Time {
+func (c *ViperConfig) GetTime(key string) time.Time {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return time.Now()
@@ -205,7 +205,7 @@ func (c *ViperConfig) GetTimeConf(key string) time.Time {
 }
 
 //获取时间阶段长度
-func (c *ViperConfig) GetDurationConf(key string) time.Duration {
+func (c *ViperConfig) GetDuration(key string) time.Duration {
 	keys := strings.Split(key, ".")
 	if len(keys) < 2 {
 		return 0

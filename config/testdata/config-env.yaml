@@ -1,0 +1,5 @@
+testa:
+  data: ${TEST_A_DATA:def}
+
+testb:
+  data: ${TEST_B_DATA:456}

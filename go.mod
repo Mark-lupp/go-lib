@@ -12,6 +12,7 @@ require (
 	github.com/spf13/viper v1.10.0
 	go.mongodb.org/mongo-driver v1.8.1
 	go.uber.org/zap v1.19.1
+	gopkg.in/yaml.v2 v2.4.0
 )
 
 require (
@@ -45,7 +46,6 @@ require (
 	gopkg.in/check.v1 v1.0.0-20190902080502-41f04d3bba15 // indirect
 	gopkg.in/ini.v1 v1.66.2 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	xorm.io/builder v0.3.6 // indirect
 	xorm.io/core v0.7.2-0.20190928055935-90aeac8d08eb // indirect
 )

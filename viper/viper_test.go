@@ -1,7 +1,6 @@
 package viper
 
 import (
-	"fmt"
 	"testing"
 )
 
@@ -9,12 +8,12 @@ func TestNew(t *testing.T) {
 	config := &ViperConfig{
 		Debug: true,
 		FilePaths: []string{
-			"/conf/application.yaml",
+			"testdata/conf-no-env.yaml",
 		},
 	}
 	c, err := New(*config)
 	if err != nil {
-		fmt.Errorf(err.Error())
+		t.Error(err)
 	}
-	c.GetConf("base.mysql")
+	c.GetStringConf("testa.data")
 }

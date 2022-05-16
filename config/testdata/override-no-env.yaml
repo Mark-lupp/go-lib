@@ -1,0 +1,10 @@
+data1: abc
+data2: 123
+data3:
+  - 1
+  - 2
+data4:
+  a: 1
+  b: 2
+data5:
+  - a: 1

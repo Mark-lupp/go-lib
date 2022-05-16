@@ -1,0 +1,10 @@
+data1: ${TEST_1:abc}
+data2: ${TEST_2:123}
+data3:
+  - ${TEST_3_1:1}
+  - ${TEST_3_2_NOT_SET:2}
+data4:
+  a: ${TEST_4_A:1}
+  b: ${TEST_4_B_NOT_SET:1}
+data5:
+  - a: ${TEST_5_A:1}
